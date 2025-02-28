@@ -33,14 +33,6 @@ class Event {
   }
 }
 
-// const row = document.querySelector('.event-list__item');
-// row.addEventListener('change', (e)=>{
-//     console.log(e.target.value);
-
-// })
-
-// const newEvent = new Event("Concert", "2025-02-20", "2025-02-23")
-// console.log(newEvent);
 
 //Event Model
 class EventModel {
@@ -59,7 +51,10 @@ class EventModel {
   }
 
   getEventById(id) {
-    return this.#events.find((event) => event.id === id);
+    
+    const some = this.#events.find((event) => event.id === id);
+    return some;
+    
   }
   //add event
   addEvent(newEvent) {
@@ -160,8 +155,8 @@ class EventView {
   }
 
   renderEvents(events) {
-    events.forEach(({ id, eventName, startDate, endDate }) => {
-        this.renderEventView({ id, title: eventName, startDate, endDate });
+    events.forEach((evt) => {
+        this.renderEventView(evt);
     });
 }
 
@@ -203,8 +198,15 @@ class EventView {
     return row;
   }
   updateEventRowView(row, event) {
+    console.log(event);
+    
+    const inputs = row.querySelectorAll("input");
+    inputs[0].value = event.eventName || event.title;
+    inputs[1].value = event.startDate;
+    inputs[2].value = event.endDate;
+    inputs.forEach(input => input.setAttribute("readOnly", true));
     const btnsCell = row.cells[row.cells.length - 1];
-    console.log(btnsCell);
+    // console.log(btnsCell);
     
     btnsCell.innerHTML = `
         <button aria-label="Edit" class="event-list__item-edit-btn"> 
@@ -224,7 +226,19 @@ removeEventRowView(row){
     this.eventListTableBody.removeChild(row)
 }
 
-
+enableEditRowView(row) {
+    const inputs = row.querySelectorAll('input');
+    inputs.forEach(input => input.removeAttribute("readOnly"));
+    const btnsCell = row.cells[row.cells.length - 1];
+    btnsCell.innerHTML = `
+            <button aria-label="Save" class="event-list__item-save-btn"> 
+               <svg focusable viewBox="0 0 24 24" aria-hidden="true xmlns="http://www.w3.org/2000/svg"><path d="M12 6V18M18 12H6" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button aria-label="Cancel" class="event-list__item-cancel-btn">
+                <svg focusable="false" aria-hidden="true" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M19.587 16.001l6.096 6.096c0.396 0.396 0.396 1.039 0 1.435l-2.151 2.151c-0.396 0.396-1.038 0.396-1.435 0l-6.097-6.096-6.097 6.096c-0.396 0.396-1.038 0.396-1.434 0l-2.152-2.151c-0.396-0.396-0.396-1.038 0-1.435l6.097-6.096-6.097-6.097c-0.396-0.396-0.396-1.039 0-1.435l2.153-2.151c0.396-0.396 1.038-0.396 1.434 0l6.096 6.097 6.097-6.097c0.396-0.396 1.038-0.396 1.435 0l2.151 2.152c0.396 0.396 0.396 1.038 0 1.435l-6.096 6.096z"></path></svg>
+            </button>
+            `;
+}
 
 
 
@@ -237,22 +251,29 @@ class EventController {
     this.model = model;
     this.view = view;
     this.service = service;
-
+    this.editingEventId = null;
     this.init();
   }
 
   async init() {
     console.log(await this.service.fetchEvents());
     const events = await this.service.fetchEvents();
-    this.view.renderEvents(events);
+
+    let eventsList = [];
+    eventsList = events.map(
+      ({ id, eventName, startDate, endDate }) => new Event(id, eventName, startDate, endDate)
+    );
+    
+    this.model.events = eventsList;
+    this.view.renderEvents(eventsList);
+
+
     this.setUpAddNewEventHandler()
     this.setUpDeleteEventHandler();
-    // console.log(this.view.eventListTableBody);
-    // const row = this.view.eventListTableBody.insertRow();
-
-    // row.insertCell().innerHTML = `<input type="text" class="event-list__item-title" value="${events[0].eventName}">`
-    // row.insertCell().innerHTML = `<input type="date" class="event-list__item-start" value="${events[0].startDate}"/>`
-    // events[0].eventName;
+    this.setUpEditEventHandler();
+    this.setUpCancelEventHandler();
+    this.setUpSaveEditEventHandler();
+ 
   }
 
   setUpAddNewEventHandler() {
@@ -261,17 +282,18 @@ class EventController {
     });
 
     this.view.eventListTableBody.addEventListener("click", async (e) => {
+        if(this.editingEventId ) return;
+    
         const saveBtn = e.target.closest(".event-list__item-save-btn"); 
         if (!saveBtn) return;
 
-        console.log("here");
 
         const newRow = saveBtn.closest("tr"); 
         const eventName = newRow.querySelector(".event-list__item-title").value;
         const startDate = newRow.querySelector(".event-list__item-start").value;
         const endDate = newRow.querySelector(".event-list__item-end").value;
         const newEvent = await this.service.postNewEvent({ eventName, startDate, endDate });
-      
+    
         this.view.updateEventRowView(newRow, newEvent);
     });
 }
@@ -287,6 +309,65 @@ setUpDeleteEventHandler(){
         this.model.deleteEvent(eventId);
         this.view.removeEventRowView(rowToDelete);
 
+    });
+}
+setUpCancelEventHandler(){
+    this.view.eventListTableBody.addEventListener("click", async (e) => {
+        const cancelBtn = e.target.closest(".event-list__item-cancel-btn"); 
+        if (!cancelBtn) return;
+
+        const rowToCancel = cancelBtn.parentElement.parentElement;
+        const eventId = rowToCancel.dataset.eventId;
+        
+        if(!eventId){
+            //should indicate new row pre-post request
+            rowToCancel.remove();
+        }else{
+            //cancel our editing on existing event
+            const oldEvent = this.model.getEventById(eventId);
+            this.view.updateEventRowView(rowToCancel,oldEvent)
+        }
+
+    });
+}
+
+setUpEditEventHandler(){
+    this.view.eventListTableBody.addEventListener("click", async (e) => {
+        const editBtn = e.target.closest(".event-list__item-edit-btn"); 
+        if (!editBtn) return;
+    
+        const rowToEdit = editBtn.parentElement.parentElement;
+        this.view.enableEditRowView(rowToEdit);
+        this.editingEventId = rowToEdit.dataset.eventId;
+        
+        const oldEVent = this.model.getEventById(this.editingEventId);   
+
+    });
+}
+
+setUpSaveEditEventHandler(){
+    this.view.eventListTableBody.addEventListener("click", async (e) => {
+        if (!this.editingEventId) return; 
+        const saveBtn = e.target.closest(".event-list__item-save-btn"); 
+        if (!saveBtn) return;
+
+        const rowToEdit = saveBtn.closest("tr");
+        const eventName = rowToEdit.querySelector(".event-list__item-title").value;
+        const startDate = rowToEdit.querySelector(".event-list__item-start").value;
+        const endDate = rowToEdit.querySelector(".event-list__item-end").value;
+
+        const updatedEvent = {
+            id: this.editingEventId,
+            eventName,
+            startDate,
+            endDate
+        };
+
+            await this.service.updateEvent(this.editingEventId, updatedEvent);
+            this.model.editEvent(updatedEvent);
+            this.view.updateEventRowView(rowToEdit, updatedEvent);
+            this.editingEventId = null;    
+    
     });
 }
 
