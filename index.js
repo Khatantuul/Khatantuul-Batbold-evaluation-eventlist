@@ -161,6 +161,7 @@ class EventView {
 }
 
   renderEventView({ id, title, startDate, endDate }) {
+
     const row = this.eventListTableBody.insertRow();
     row.dataset.eventId = id;
     row.insertCell().innerHTML = `<input type="text" class="event-list__item-title" value="${title}"  readonly />`;
@@ -292,6 +293,10 @@ class EventController {
         const eventName = newRow.querySelector(".event-list__item-title").value;
         const startDate = newRow.querySelector(".event-list__item-start").value;
         const endDate = newRow.querySelector(".event-list__item-end").value;
+        if(!eventName || !startDate || !endDate){
+            alert("All fields are required!");
+            return;
+        }
         const newEvent = await this.service.postNewEvent({ eventName, startDate, endDate });
     
         this.view.updateEventRowView(newRow, newEvent);
