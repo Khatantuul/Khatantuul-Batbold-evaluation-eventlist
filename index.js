@@ -79,3 +79,85 @@ class EventModel {
       this.#events = this.#events.filter((event) => event.id !== id);
     }
   }
+
+  //service layer
+class EventService {
+    #apiURL;
+    constructor() {
+      this.#apiURL = "http://localhost:3000/events";
+    }
+  
+    //get
+    async fetchEvents() {
+      try {
+        const resp = await fetch(this.#apiURL);
+        const events = await resp.json();
+        return events;
+      } catch (err) {
+        console.log("Error when fetching events", err);
+      }
+    }
+    //post
+    async postNewEvent(newEvent) {
+      try {
+        const resp = await fetch(this.#apiURL, {
+          method: "POST",
+          headers: {
+            "Content-type": "application/json",
+          },
+          body: JSON.stringify(newEvent),
+        });
+        const newEvent = resp.json();
+        return newEvent;
+      } catch (err) {
+        console.log("Error when posting new event", err);
+      }
+    }
+    //put
+    async updateEvent(id, updatedEvent) {
+      try {
+        await fetch(`${this.#apiURL}/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-type": "application/json",
+          },
+          body: JSON.stringify(updatedEvent),
+        });
+      } catch (err) {
+        console.log("Error when updating event", err);
+      }
+    }
+    //delete
+    async deleteEvent(id) {
+      console.log(id);
+  
+      try {
+        await fetch(`${this.#apiURL}/${id}`, {
+          method: "DELETE",
+        });
+      } catch (err) {
+        console.log("Error when deleting an event", err);
+      }
+    }
+  }
+
+  //Event View
+class EventView {
+    constructor() {
+      this.addNewEventBtn = document.querySelector('.event-list__add-event-btn');
+      this.eventTitleInput = document.querySelector(".event-list__item-title");
+      this.eventStartDateInput = document.querySelector(".event-list__item-start");
+      this.eventEndDateInput = document.querySelector(".event-list__item-end");
+      this.eventItemEditBtn = document.querySelector('.event-list__item-edit-btn');
+      this.eventItemDltBtn = document.querySelector('.event-list__item-dlt-btn')
+    }
+  
+  }
+
+
+
+
+  
+  const model = new EventModel();
+  const view = new EventView();
+//   const
