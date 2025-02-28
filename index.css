@@ -25,6 +25,11 @@ html{
     padding: 1rem;
 }
 
+th, td{
+    vertical-align: middle;
+    text-align: center;
+}
+
 svg {
     width: 22px;
     height: 22px;
