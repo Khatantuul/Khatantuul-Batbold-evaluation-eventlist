@@ -3,12 +3,16 @@ console.log("hey");
 //mvc
 //single Event structure
 class Event {
-  constructor(title, startDate, endDate) {
+  constructor(id, title, startDate, endDate) {
+    this.id = id;
     this.title = title;
     this.startDate = startDate;
     this.endDate = endDate;
   }
 
+  getId() {
+    return this.id;
+  }
   getTitle() {
     return this.title;
   }
@@ -96,14 +100,14 @@ class EventService {
     }
   }
   //post
-  async postNewEvent(newEvent) {
+  async postNewEvent(newEvt) {
     try {
       const resp = await fetch(this.#apiURL, {
         method: "POST",
         headers: {
           "Content-type": "application/json",
         },
-        body: JSON.stringify(newEvent),
+        body: JSON.stringify(newEvt),
       });
       const newEvent = resp.json();
       return newEvent;
@@ -156,12 +160,19 @@ class EventView {
   }
 
   renderEvents(events) {
-    events.forEach((evt) => {
-      const row = this.eventListTableBody.insertRow();
-      row.insertCell().innerHTML = `<input type="text" class="event-list__item-title" value="${evt.eventName}">`;
-      row.insertCell().innerHTML = `<input type="date" class="event-list__item-start" value="${evt.startDate}"/>`;
-      row.insertCell().innerHTML = `<input type="date" class="event-list__item-end" value="${evt.endDate}"/>`;
-      row.insertCell().innerHTML = `
+    events.forEach(({ id, eventName, startDate, endDate }) => {
+        this.renderEventView({ id, title: eventName, startDate, endDate });
+    });
+}
+
+  renderEventView({ id, title, startDate, endDate }) {
+    const row = this.eventListTableBody.insertRow();
+    row.dataset.eventId = id;
+    row.insertCell().innerHTML = `<input type="text" class="event-list__item-title" value="${title}"  readonly />`;
+    row.insertCell().innerHTML = `<input type="date" class="event-list__item-start" value="${startDate}" readonly/>`;
+    row.insertCell().innerHTML = `<input type="date" class="event-list__item-end" value="${endDate}" readonly/>`;
+    row.classList.add("event-list__item-btns-wrapper")
+    row.insertCell().innerHTML = `
             <button aria-label="Edit" class="event-list__item-edit-btn"> 
                 <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
                 <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"></path>
@@ -173,8 +184,51 @@ class EventView {
                 </svg>
             </button>
             `;
-    });
   }
+  addNewEventView() {
+    const row = this.eventListTableBody.insertRow();
+    // row.dataset.eventId = id;
+    row.insertCell().innerHTML = `<input type="text" class="event-list__item-title" value="" required/>`;
+    row.insertCell().innerHTML = `<input type="date" class="event-list__item-start" value="" required/>`;
+    row.insertCell().innerHTML = `<input type="date" class="event-list__item-end" value="" required/>`;
+    row.classList.add("event-list__item-btns-wrapper")
+    row.insertCell().innerHTML = `
+            <button aria-label="Save" class="event-list__item-save-btn"> 
+               <svg focusable viewBox="0 0 24 24" aria-hidden="true xmlns="http://www.w3.org/2000/svg"><path d="M12 6V18M18 12H6" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button aria-label="Cancel" class="event-list__item-cancel-btn">
+                <svg focusable="false" aria-hidden="true" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M19.587 16.001l6.096 6.096c0.396 0.396 0.396 1.039 0 1.435l-2.151 2.151c-0.396 0.396-1.038 0.396-1.435 0l-6.097-6.096-6.097 6.096c-0.396 0.396-1.038 0.396-1.434 0l-2.152-2.151c-0.396-0.396-0.396-1.038 0-1.435l6.097-6.096-6.097-6.097c-0.396-0.396-0.396-1.039 0-1.435l2.153-2.151c0.396-0.396 1.038-0.396 1.434 0l6.096 6.097 6.097-6.097c0.396-0.396 1.038-0.396 1.435 0l2.151 2.152c0.396 0.396 0.396 1.038 0 1.435l-6.096 6.096z"></path></svg>
+            </button>
+            `;
+    return row;
+  }
+  updateEventRowView(row, event) {
+    const btnsCell = row.cells[row.cells.length - 1];
+    console.log(btnsCell);
+    
+    btnsCell.innerHTML = `
+        <button aria-label="Edit" class="event-list__item-edit-btn"> 
+            <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"></path>
+            </svg>
+        </button>
+        <button aria-label="Delete" class="event-list__item-dlt-btn">
+            <svg focusable="false" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path>
+            </svg>
+        </button>
+    `;
+}
+
+removeEventRowView(row){
+    this.eventListTableBody.removeChild(row)
+}
+
+
+
+
+
+
 }
 
 //Event Controller
@@ -191,6 +245,8 @@ class EventController {
     console.log(await this.service.fetchEvents());
     const events = await this.service.fetchEvents();
     this.view.renderEvents(events);
+    this.setUpAddNewEventHandler()
+    this.setUpDeleteEventHandler();
     // console.log(this.view.eventListTableBody);
     // const row = this.view.eventListTableBody.insertRow();
 
@@ -198,6 +254,42 @@ class EventController {
     // row.insertCell().innerHTML = `<input type="date" class="event-list__item-start" value="${events[0].startDate}"/>`
     // events[0].eventName;
   }
+
+  setUpAddNewEventHandler() {
+    this.view.addNewEventBtn.addEventListener("click", async (e) => {
+        const newRow = this.view.addNewEventView(); 
+    });
+
+    this.view.eventListTableBody.addEventListener("click", async (e) => {
+        const saveBtn = e.target.closest(".event-list__item-save-btn"); 
+        if (!saveBtn) return;
+
+        console.log("here");
+
+        const newRow = saveBtn.closest("tr"); 
+        const eventName = newRow.querySelector(".event-list__item-title").value;
+        const startDate = newRow.querySelector(".event-list__item-start").value;
+        const endDate = newRow.querySelector(".event-list__item-end").value;
+        const newEvent = await this.service.postNewEvent({ eventName, startDate, endDate });
+      
+        this.view.updateEventRowView(newRow, newEvent);
+    });
+}
+
+setUpDeleteEventHandler(){
+    this.view.eventListTableBody.addEventListener("click", async (e) => {
+        const dltBtn = e.target.closest(".event-list__item-dlt-btn"); 
+        if (!dltBtn) return;
+
+        const rowToDelete = dltBtn.parentElement.parentElement;
+        const eventId = rowToDelete.dataset.eventId;
+        this.service.deleteEvent(eventId);
+        this.model.deleteEvent(eventId);
+        this.view.removeEventRowView(rowToDelete);
+
+    });
+}
+
 }
 
 const model = new EventModel();
