@@ -297,8 +297,11 @@ class EventController {
             alert("All fields are required!");
             return;
         }
+        if (new Date(startDate) > new Date(endDate)) {
+            alert("End date should be after the start date!");
+            return;
+        }
         const newEvent = await this.service.postNewEvent({ eventName, startDate, endDate });
-    
         this.view.updateEventRowView(newRow, newEvent);
     });
 }
@@ -344,9 +347,6 @@ setUpEditEventHandler(){
         const rowToEdit = editBtn.parentElement.parentElement;
         this.view.enableEditRowView(rowToEdit);
         this.editingEventId = rowToEdit.dataset.eventId;
-        
-        const oldEVent = this.model.getEventById(this.editingEventId);   
-
     });
 }
 
@@ -360,7 +360,14 @@ setUpSaveEditEventHandler(){
         const eventName = rowToEdit.querySelector(".event-list__item-title").value;
         const startDate = rowToEdit.querySelector(".event-list__item-start").value;
         const endDate = rowToEdit.querySelector(".event-list__item-end").value;
-
+        if(!eventName || !startDate || !endDate){
+            alert("All fields are required!");
+            return;
+        }
+        if (new Date(startDate) > new Date(endDate)) {
+            alert("End date should be after the start date!");
+            return;
+        }
         const updatedEvent = {
             id: this.editingEventId,
             eventName,
